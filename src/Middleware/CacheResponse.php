@@ -38,10 +38,26 @@ class CacheResponse
         $response = $next($request);
 
         if ($this->shouldCache($request, $response)) {
+            $minified = $this->minify($response->getContent());
+            $response->setContent($minified);
             $this->cache->cache($request, $response);
         }
 
         return $response;
+    }
+
+    private function minify(string $content): string
+    {
+        // Remove HTML comments (except IE conditionals)
+        $content = preg_replace('/<!--(?!\s*(?:\[if [^\]]+]|<!|>))(?:(?!-->).)*-->/s', '', $content);
+
+        // Remove whitespace between tags
+        $content = preg_replace('/>\s+</', '><', $content);
+
+        // Collapse multiple whitespace characters into one
+        $content = preg_replace('/\s{2,}/', ' ', $content);
+
+        return trim($content);
     }
 
     /**
